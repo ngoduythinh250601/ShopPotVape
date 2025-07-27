@@ -1,0 +1,28 @@
+/* css/custom.css */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+
+.qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qty-controls button {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+}
+
+.qty-controls input {
+    width: 3rem;
+    text-align: center;
+}

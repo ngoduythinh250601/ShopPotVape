@@ -1,0 +1,122 @@
+<!-- admin.html - Trang quản lý tồn kho (sử dụng backend PHP) -->
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý tồn kho</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container py-4">
+        <h1 class="mb-4">Quản lý tồn kho</h1>
+        <div class="mb-3">
+            <button class="btn btn-secondary me-2" onclick="exportStock()">📤 Export tồn kho</button>
+            <input type="file" id="importFile" accept="application/json" style="display:none"
+                onchange="importStock(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 Import tồn
+                kho</button>
+        </div>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Tên sản phẩm</th>
+                    <th>Số lượng còn lại</th>
+                    <th>Thay đổi</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-table"></tbody>
+        </table>
+        <button class="btn btn-primary" onclick="saveStock()">Lưu lại</button>
+    </div>
+
+    <script>
+        let products = [];
+        const table = document.getElementById('inventory-table');
+
+        function renderTable() {
+            table.innerHTML = '';
+            products.forEach((p, i) => {
+                const row = `
+          <tr>
+            <td>${p.name}</td>
+            <td><input type="number" min="0" value="${p.stock}" class="form-control" id="stock-${i}"></td>
+            <td><button class="btn btn-danger" onclick="setStock(${i}, 0)">Về 0</button></td>
+          </tr>
+        `;
+                table.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function setStock(index, value) {
+            document.getElementById(`stock-${index}`).value = value;
+        }
+
+        function saveStock() {
+            products.forEach((p, i) => {
+                const val = parseInt(document.getElementById(`stock-${i}`).value);
+                p.stock = isNaN(val) ? 0 : val;
+            });
+
+            fetch('save-products.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(products)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        alert('Đã lưu thành công lên server!');
+                    } else {
+                        alert('Lỗi khi lưu dữ liệu!');
+                    }
+                })
+                .catch(() => alert('Không thể kết nối tới server.'));
+        }
+
+        function exportStock() {
+            const dataStr = JSON.stringify(products, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'products_backup.json';
+            a.click();
+        }
+
+        function importStock(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        products = imported;
+                        renderTable();
+                        alert('Đã nhập dữ liệu tồn kho.');
+                    } else {
+                        alert('File không hợp lệ!');
+                    }
+                } catch (err) {
+                    alert('Lỗi đọc file!');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Tải dữ liệu từ server
+        fetch('get-products.php')
+            .then(res => res.json())
+            .then(data => {
+                products = data;
+                renderTable();
+            })
+            .catch(() => alert('Không thể tải dữ liệu từ server.'));
+    </script>
+</body>
+
+</html>
